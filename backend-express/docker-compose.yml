@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cattle-breed-db
+    environment:
+      POSTGRES_DB: cattle_breed_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Express.js Backend
+  backend:
+    build: .
+    container_name: cattle-breed-backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/cattle_breed_db?schema=public"
+      FLASK_API_URL: "http://flask:5000"
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Flask ML Backend (assuming it exists)
+  flask:
+    image: your-flask-image:latest
+    container_name: cattle-breed-flask
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:

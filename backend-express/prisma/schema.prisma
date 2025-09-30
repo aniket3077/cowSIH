@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firebaseUid String @unique @map("firebase_uid")
+  role      UserRole @default(FARMER)
+  name      String?
+  profileImage String? @map("profile_image")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  predictions Prediction[]
+
+  @@map("users")
+}
+
+model Prediction {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  imagePath    String   @map("image_path")
+  breedName    String   @map("breed_name")
+  confidence   Float
+  processingTime Float? @map("processing_time")
+  metadata     Json?    // Store additional prediction data
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("predictions")
+}
+
+enum UserRole {
+  FARMER
+  OFFICER
+  ADMIN
+}
